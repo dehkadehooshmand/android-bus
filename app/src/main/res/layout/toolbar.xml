@@ -19,7 +19,7 @@
             android:layout_centerInParent="true"
             android:gravity="center"
             android:text="اتوبوس هوشمند"
-            android:textColor="@color/white"
+            android:textColor="@color/black"
             android:textSize="15dp" />
 
         <ImageView

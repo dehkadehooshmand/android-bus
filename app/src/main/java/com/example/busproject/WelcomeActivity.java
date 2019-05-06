@@ -131,7 +131,9 @@ public class WelcomeActivity extends AppCompatActivity {
     }
     private void launchHomeScreen() {
         prefManager.setFirstTimeLaunch(false);
-        startActivity(new Intent(WelcomeActivity.this, LoginActivity.class));
+
+        //todo login bayad bashe
+        startActivity(new Intent(WelcomeActivity.this, MapsActivity.class));
         finish();
     }
 

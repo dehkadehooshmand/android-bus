@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#4CAF50</color>
-    <color name="colorAccent">#66BB6A</color>
-    <color name="colorPrimaryDark">#1B5E20</color>
+    <color name="colorPrimary">#ffeb3b</color>
+    <color name="colorAccent">#ffee58</color>
+    <color name="colorPrimaryDark">#ffeb3b</color>
     <color name="white">#FFFFFFFF</color>
     <color name="black">#FF050000</color>
     <item name="material_green" type="color">#4CAF50</item>
@@ -10,7 +10,8 @@
     <color name="blue">#06a0bc</color>
     <color name="transeparent">#005cb85c</color>
     <color name="red">#FE1403</color>
-    <color name="line_color">#2E7D32</color>
+    <color name="line_color">#ffeb3b</color>
+    <color name="gray">#C6C6C6</color>
 
     <color name="material_blue">#b3f1fb</color>
 

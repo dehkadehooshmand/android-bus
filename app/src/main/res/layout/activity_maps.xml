@@ -157,7 +157,7 @@
             android:layout_height="50dp"
             android:layout_above="@+id/view"
             android:layout_centerHorizontal="true"
-            app:srcCompat="@drawable/ic_location2" />
+            app:srcCompat="@drawable/ic_pin" />
 
         <ImageButton
             android:id="@+id/currentlocation"
@@ -527,8 +527,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="8dp"
-            android:layout_marginRight="8dp"
             android:layout_marginTop="16dp"
+            android:layout_marginRight="8dp"
             android:layout_marginBottom="-16dp"
             android:background="#E3E0E0">
 
@@ -560,57 +560,102 @@
             android:layout_marginBottom="8dp" />
     </LinearLayout>
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/crd_seekbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="100dp"
         android:layout_alignParentTop="true"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="64dp"
         android:layout_marginRight="16dp"
         android:layout_marginBottom="8dp"
-        android:background="@color/white"
-        android:visibility="visible"
+        android:background="@drawable/gradient"
 
         android:clickable="true"
+
         android:focusable="true"
-        android:gravity="center"
 
-        android:orientation="horizontal">
+        android:visibility="visible">
 
-    <com.warkiz.widget.IndicatorStayLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        <!--<com.warkiz.widget.IndicatorStayLayout-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_toLeftOf="@id/chechrel">-->
 
-        <com.warkiz.widget.IndicatorSeekBar
-            android:id="@+id/seek_bar"
+            <!--<com.warkiz.widget.IndicatorSeekBar-->
+                <!--android:id="@+id/seek_bar"-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:scrollbarAlwaysDrawHorizontalTrack="true"-->
+                <!--app:isb_indicator_color="@color/material_green"-->
+                <!--app:isb_indicator_text_color="@color/white"-->
+                <!--app:isb_indicator_text_size="10sp"-->
+                <!--android:scrollIndicators="right"-->
+                <!--app:isb_max="250"-->
+                <!--app:isb_min="50"-->
+                <!--app:isb_only_thumb_draggable="false"-->
+                <!--app:isb_progress="25"-->
+                <!--app:isb_seek_smoothly="true"-->
+                <!--app:isb_show_indicator="circular_bubble"-->
+                <!--app:isb_show_tick_marks_type="oval"-->
+                <!--app:isb_show_tick_texts="true"-->
+                <!--app:isb_thumb_color="@color/material_green"-->
+                <!--app:isb_thumb_size="20dp"-->
+                <!--app:isb_tick_marks_color="@color/black"-->
+                <!--app:isb_tick_marks_size="3dp"-->
+                <!--app:isb_tick_marks_swept_hide="true"-->
+                <!--app:isb_tick_texts_color="@color/black"-->
+                <!--app:isb_tick_texts_size="12sp"-->
+                <!--app:isb_ticks_count="5"-->
+                <!--app:isb_track_background_color="@color/grey_60"-->
+                <!--app:isb_track_background_size="2dp"-->
+                <!--app:isb_track_progress_color="@color/material_green"-->
+                <!--app:isb_track_progress_size="4dp" />-->
+
+
+        <!--</com.warkiz.widget.IndicatorStayLayout>-->
+
+        <com.xw.repo.BubbleSeekBar
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:isb_indicator_color="@color/material_green"
-            app:isb_indicator_text_color="@color/white"
-            app:isb_indicator_text_size="18sp"
-            app:isb_max="250"
-            app:isb_min="50"
-            app:isb_only_thumb_draggable="true"
-            app:isb_progress="25"
-            app:isb_seek_smoothly="true"
-            app:isb_show_tick_marks_type="oval"
-            android:scrollbarAlwaysDrawHorizontalTrack="true"
-            app:isb_show_tick_texts="true"
-            app:isb_thumb_color="@color/material_green"
-            app:isb_thumb_size="20dp"
-            app:isb_tick_marks_swept_hide="true"
-            app:isb_tick_marks_color="@color/black"
+            android:id="@+id/seek_bar"
+            android:layout_toLeftOf="@id/chechrel"
+            app:bsb_bubble_color="@color/white"
+            app:bsb_bubble_text_color="@color/white"
+            app:bsb_max="250"
+            app:bsb_min="50"
+            app:bsb_progress="0"
+            android:layout_alignParentBottom="true"
+            app:bsb_second_track_color="@color/white"
 
-            app:isb_tick_marks_size="3dp"
-            app:isb_tick_texts_color="@color/black"
-            app:isb_tick_texts_size="12sp"
-            app:isb_ticks_count="5"
-            app:isb_track_background_color="@color/grey_60"
-            app:isb_track_background_size="2dp"
-            app:isb_track_progress_color="@color/material_green"
-            app:isb_track_progress_size="4dp" />
-    </com.warkiz.widget.IndicatorStayLayout>
+            app:bsb_section_count="5"
+            app:bsb_section_text_position="bottom_sides"
+            app:bsb_show_progress_in_float="true"
+            app:bsb_show_section_mark="true"
+            app:bsb_show_section_text="true"
+            app:bsb_show_thumb_text="true"
+            app:bsb_track_color="@color/white"/>
 
-    </LinearLayout>
+        <RelativeLayout
+            android:id="@+id/chechrel"
+            android:layout_width="40dp"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:layout_alignParentRight="true">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/txt"
+                android:textColor="@color/black"
+                android:text="هشدار" />
+
+            <CheckBox
+                android:id="@+id/check"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/txt"
+                android:checked="false" />
+        </RelativeLayout>
+    </RelativeLayout>
 </android.support.design.widget.CoordinatorLayout>

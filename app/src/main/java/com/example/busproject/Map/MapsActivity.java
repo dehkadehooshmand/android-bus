@@ -16,6 +16,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -61,6 +62,8 @@ import com.example.busproject.Adapters.ShowLineAdapter;
 import com.example.busproject.CodeScannerActivity;
 import com.example.busproject.LoginActivity;
 import com.example.busproject.Model.Area;
+import com.example.busproject.Model.Bus;
+import com.example.busproject.Model.CurrentBus;
 import com.example.busproject.Model.Line;
 import com.example.busproject.Model.Station;
 import com.example.busproject.R;
@@ -104,14 +107,19 @@ import com.loopj.android.http.TextHttpResponseHandler;
 import com.warkiz.widget.IndicatorSeekBar;
 import com.warkiz.widget.OnSeekChangeListener;
 import com.warkiz.widget.SeekParams;
+import com.xw.repo.BubbleSeekBar;
 
 import java.io.File;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
+
 
 import cz.msebera.android.httpclient.Header;
 
@@ -124,6 +132,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
 
+    TextView increase_vlidity, validity;
     private BottomSheetBehavior bottomSheetBehavior;
 
     int minIndex;
@@ -180,7 +189,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     int alarmDist = 100;
     TextView txtDistance;
     CardView search_layout;
-    LinearLayout  seekbar_layout;
+    RelativeLayout seekbar_layout;
     public static int location_int = 1;
     private int location_time = 0;
 
@@ -197,6 +206,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.navigation_drawer);
 
+        increase_vlidity = findViewById(R.id.IncreaseValidity);
+        validity = findViewById(R.id.validity);
 
         person1 = findViewById(R.id.p1);
         person2 = findViewById(R.id.p2);
@@ -244,7 +255,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     marker = mMap.addMarker(new MarkerOptions()
                             .position(new LatLng(mCenterLatLong.latitude, mCenterLatLong.longitude))
-                            .icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.mylocation)));
+                            .icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.ic_pin)));
 
                     marker.setTag("mainmarker");
 
@@ -272,74 +283,111 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         seekbar_layout = findViewById(R.id.crd_seekbar);
 
 
-        final IndicatorSeekBar seekBar = findViewById(R.id.seek_bar);
+        BubbleSeekBar bubbleSeekBar = findViewById(R.id.seek_bar);
 
-
-        seekBar.setOnSeekChangeListener(new OnSeekChangeListener() {
-
+        bubbleSeekBar.setOnProgressChangedListener(new BubbleSeekBar.OnProgressChangedListener() {
             @Override
-            public void onSeeking(SeekParams seekParams) {
-                Log.d(TAG, "onSeeking: " + seekParams.progress);
-                drawCircle(seekParams.progress);
-                alarmDist=seekParams.progress;
-//                SharedPreferences.Editor SP;
-//                SP = PreferenceManager.getDefaultSharedPreferences(AppController.getAppContext()).edit();
-//
-//                SP.putString("alarm_len", String.valueOf(seekParams.progress * 1000));
-//                SP.apply();
-//todo should get from server
-                // getNearestTaxis(seekParams.progress*1000);
+            public void onProgressChanged(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat, boolean fromUser) {
 
-                if (seekParams.progress == 2) {
+                Log.d(TAG, "onSeeking: " + progress);
+                drawCircle(progress);
+                alarmDist = progress;
+                if (progress == 2) {
 
 
-                } else if (seekParams.progress == 4) {
+                } else if (progress == 4) {
 
-                } else if (seekParams.progress == 6){
+                } else if (progress == 6) {
+
+                } else if (progress == 8) {
+
+                } else if (progress == 10) {
 
                 }
-                else if (seekParams.progress==8){
-
-                }
-                else if (seekParams.progress==10){
-
-                }
-
-
-//                    List<Taxi> taxis = new ArrayList<>();
-//                MarkerOptions markerOptions = new MarkerOptions();
-//
-//                markerOptions.position(new LatLng(35.744964, 50.905066)).icon(BitmapDescriptorFactory.fromResource(R.drawable.car));
-//                Marker marker = mMap.addMarker(markerOptions);
-//                // marker.setTag(taxi.getId());
-//                Taxi taxi = new Taxi();
-//                taxi.setLat(35.744964);
-//                taxi.setLng(50.905066);
-//                taxis.add(taxi);
-//
-//                MarkerWindowInfoAdapter markerInfoWindowAdapter = new MarkerWindowInfoAdapter(AppController.getAppContext(), taxis);
-//                mMap.setInfoWindowAdapter(markerInfoWindowAdapter);
-////
-
             }
 
             @Override
-            public void onStartTrackingTouch(IndicatorSeekBar seekBar) {
-                LatLng homeLoc = new LatLng(mCenterLatLong.latitude, mCenterLatLong.longitude);
-                // mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(homeLoc, 12));
+            public void getProgressOnActionUp(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat) {
 
-
+                try {
+                    LatLng homeLoc = new LatLng(mCenterLatLong.latitude, mCenterLatLong.longitude);
+                } catch (Exception e) {
+                }
             }
 
             @Override
-            public void onStopTrackingTouch(IndicatorSeekBar seekBar) {
+            public void getProgressOnFinally(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat, boolean fromUser) {
+
             }
         });
-
-
-
-
-        //   seekBar.getIndicator().setContentView(R.layout.indic);
+//
+//        final IndicatorSeekBar seekBar = findViewById(R.id.seek_bar);
+//
+//
+//        seekBar.setOnSeekChangeListener(new OnSeekChangeListener() {
+//
+//            @Override
+//            public void onSeeking(SeekParams seekParams) {
+//                Log.d(TAG, "onSeeking: " + seekParams.progress);
+//                drawCircle(seekParams.progress);
+//                alarmDist = seekParams.progress;
+////                SharedPreferences.Editor SP;
+////                SP = PreferenceManager.getDefaultSharedPreferences(AppController.getAppContext()).edit();
+////
+////                SP.putString("alarm_len", String.valueOf(seekParams.progress * 1000));
+////                SP.apply();
+////todo should get from server
+//                // getNearestTaxis(seekParams.progress*1000);
+//
+//                if (seekParams.progress == 2) {
+//
+//
+//                } else if (seekParams.progress == 4) {
+//
+//                } else if (seekParams.progress == 6) {
+//
+//                } else if (seekParams.progress == 8) {
+//
+//                } else if (seekParams.progress == 10) {
+//
+//                }
+//
+//
+////                    List<Taxi> taxis = new ArrayList<>();
+////                MarkerOptions markerOptions = new MarkerOptions();
+////
+////                markerOptions.position(new LatLng(35.744964, 50.905066)).icon(BitmapDescriptorFactory.fromResource(R.drawable.car));
+////                Marker marker = mMap.addMarker(markerOptions);
+////                // marker.setTag(taxi.getId());
+////                Taxi taxi = new Taxi();
+////                taxi.setLat(35.744964);
+////                taxi.setLng(50.905066);
+////                taxis.add(taxi);
+////
+////                MarkerWindowInfoAdapter markerInfoWindowAdapter = new MarkerWindowInfoAdapter(AppController.getAppContext(), taxis);
+////                mMap.setInfoWindowAdapter(markerInfoWindowAdapter);
+//////
+//
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(IndicatorSeekBar seekBar) {
+//                try {
+//                    LatLng homeLoc = new LatLng(mCenterLatLong.latitude, mCenterLatLong.longitude);
+//                } catch (Exception e) {
+//                }
+//                // mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(homeLoc, 12));
+//
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(IndicatorSeekBar seekBar) {
+//            }
+//        });
+//
+//
+//           seekBar.getIndicator().setContentView(R.layout.indic);
 
         currentlocation = findViewById(R.id.currentlocation);
 //daryaft location feli karbar
@@ -348,9 +396,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View v) {
                 turnOnGPS();
                 getLastLocation();
-try {
-    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-}catch (Exception e){}
+                try {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                } catch (Exception e) {
+                }
                 //toye oncreate ham benevisam
 //                if (getMyLocation()!=null)
 //                initComponent();
@@ -471,7 +520,7 @@ try {
             @Override
             public void onClick(View view) {
 
-           //     openAutocompleteActivity();
+                //     openAutocompleteActivity();
 
             }
 
@@ -509,6 +558,8 @@ try {
 //            chooseLoc();
 //        }
 
+
+        showCredit();
     }
 
 
@@ -619,7 +670,7 @@ try {
 
                     marker = mMap.addMarker(new MarkerOptions()
                             .position(new LatLng(mCenterLatLong.latitude, mCenterLatLong.longitude))
-                            .icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.ic_location2)))
+                            .icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.ic_pin)))
                     ;
 
                     imageMarker.setVisibility(View.INVISIBLE);
@@ -917,7 +968,7 @@ try {
                 LatLng latLong;
 
 
-               // latLong = place.getLatLng();
+                // latLong = place.getLatLng();
 
                 //mLocationText.setText(place.getName() + "");
 
@@ -990,7 +1041,7 @@ try {
 
 
             }
-        } catch (SecurityException e) {
+        } catch (Exception e) {
             Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
         }
 
@@ -1125,6 +1176,7 @@ try {
 
         RequestParams params = new RequestParams();
         params.put("id", id);
+        params.put("bus","");
         Helpers.client.post("http://admin.idpz.ir/api/getlines", params, new TextHttpResponseHandler() {
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
@@ -1328,19 +1380,20 @@ try {
     public void drawCircle(int progress) {
 
         // mMap.clear();
-       try {
-           CircleOptions circleOptions = new CircleOptions().center(new LatLng(getMyLocation().getLatitude(), getMyLocation().getLongitude()))
-                   .radius(progress)
-                   .strokeColor(R.color.material_blue)
-                   .fillColor(R.color.material_blue)
-                   .strokeWidth(1);
+        try {
+            CircleOptions circleOptions = new CircleOptions().center(new LatLng(getMyLocation().getLatitude(), getMyLocation().getLongitude()))
+                    .radius(progress)
+                    .strokeColor(R.color.material_blue)
+                    .fillColor(R.color.material_blue)
+                    .strokeWidth(1);
 
-           if (myCircle != null) {
-               myCircle.remove();
-           }
-           myCircle = mMap.addCircle(circleOptions);
+            if (myCircle != null) {
+                myCircle.remove();
+            }
+            myCircle = mMap.addCircle(circleOptions);
 
-       }catch (Exception e){}
+        } catch (Exception e) {
+        }
     }
 
 
@@ -1611,7 +1664,7 @@ try {
 
                     mMap.addMarker(new MarkerOptions()
                             .position(new LatLng(station.getLat(), station.getLng()))
-                            .icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.busstation))).setTitle(station.getName());
+                            .icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.ic_station))).setTitle(station.getName());
 
 
                 }
@@ -1790,5 +1843,138 @@ try {
 
         }
     }//
+
+    public void showCredit() {
+        String url = "http://bakhsh.idpz.ir/api/wallet/balance";
+        RequestParams params = new RequestParams();
+        params.put("api_token", "wVR3RtYivwvG1AzfNOaYRZteDFiqhgfGAeDuNAV4EuWHauUzqQjbZnYX6Uvri75r");
+        params.put("id", "1662");
+        Helpers.client.post(url, params, new TextHttpResponseHandler() {
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+                Log.d("", "onFailure: " + responseString + throwable);
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, String responseString) {
+
+                try {
+
+                    //   txt_Credit.setText("اعتبار شما :"+responseString);
+                    validity.setText(" اعتبار شما : " + getFormatedAmount(Integer.valueOf(responseString)) + " ریال ");
+
+                } catch (Exception e) {
+                }
+
+            }
+        });
+    }
+
+    private String getFormatedAmount(int amount) {
+        return NumberFormat.getNumberInstance(Locale.US).format(amount);
+    }
+
+    public void getNearstBus(int id){
+
+        RequestParams params = new RequestParams();
+
+//      params.put("lat", location.getLatitude());
+//        params.put("lng", location.getLongitude());
+        params.put("api_token", Helpers.getSharePrf("api_token"));
+
+
+        params.put("station_id", id);
+        Helpers.client.post("http://admin.idpz.ir/api/bus_find", params, new TextHttpResponseHandler() {
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, String responseString) {
+                //    Toast.makeText(MapsActivity.this, responseString.toString(), Toast.LENGTH_SHORT).show();
+                Log.d("latlng", responseString);
+                showBus(responseString);
+            }
+        });
+
+
+    }
+
+    public void showBus(String response){
+
+
+            try {
+                //  stopAnim();
+
+                CurrentBus currentBus = Helpers.gson.fromJson(response, CurrentBus.class);
+
+
+                if (response.contains("ok")) {
+
+                    final List<Bus> buses = currentBus.getBus();
+
+                    for (final Bus bus :buses ) {
+                        bus.getLat();
+                        bus.getLng();
+
+
+                        bus.getCapacity();
+
+                        MarkerOptions markerOptions = new MarkerOptions();
+
+                        markerOptions.position(new LatLng(bus.getLat(), bus.getLng()))//.icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.ic_logo_taxi_front));
+                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_school_bus2)).flat(true);
+                        Marker marker = mMap.addMarker(markerOptions);
+
+
+                        marker.setTag(bus.getId());
+
+
+                        final MediaPlayer mp = MediaPlayer.create(this, R.raw.sampleaudio);
+
+                        Location location = new Location("");
+                        location.setLatitude(bus.getLat());
+                        location.setLongitude(bus.getLng());
+
+                        Location mLocation = new Location("");
+                        mLocation.setLatitude(getMyLocation().getLatitude());
+                        mLocation.setLongitude(getMyLocation().getLongitude());
+                        Log.d("parisa", String.valueOf(location.distanceTo(mLocation)));
+                        Log.d("parisa", String.valueOf(alarmDist));
+                        Log.d("parisa", String.valueOf(location));
+                        Log.d("parisa", String.valueOf(mLocation));
+                        if (location.distanceTo(mLocation) < alarmDist) {
+                            mp.start();
+                            Log.d("parisa", "start");
+                        }
+
+                    }
+
+//                    for (final Taxi taxi : taxis) {
+////                        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+////                            @Override
+////                            public void onInfoWindowClick(Marker marker) {
+////
+////                                if (taxi.getId().equals(marker.getTag())) {
+////                                    newRequest();
+////                                    taxi.getId();
+////
+////
+////                                    choose_taxi(taxi.getId().toString(), taxi.getToken());
+////                                }
+////                            }
+////                        });
+//                    }
+
+                } else {
+
+                }
+            } catch (Exception e) {
+            }
+
+        }
+
+
 }
 

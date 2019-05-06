@@ -47,6 +47,7 @@
         <activity android:name=".WelcomeActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -70,7 +71,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyALbq3bwvcPQWjYvenM4PZt0Sy-6-C3Ayo" />
+            android:value="AIzaSyB4WLgiiN2yaeRJsZX6R6aY0PDWCNHUNl4" />
     </application>
 
 </manifest>
