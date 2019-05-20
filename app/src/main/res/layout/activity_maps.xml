@@ -569,7 +569,7 @@
         android:layout_marginTop="64dp"
         android:layout_marginRight="16dp"
         android:layout_marginBottom="8dp"
-        android:background="@drawable/gradient"
+        android:background="@color/transeparent"
 
         android:clickable="true"
 
@@ -620,21 +620,20 @@
             android:layout_height="wrap_content"
             android:id="@+id/seek_bar"
             android:layout_toLeftOf="@id/chechrel"
-            app:bsb_bubble_color="@color/white"
-            app:bsb_bubble_text_color="@color/white"
+            app:bsb_bubble_color="@color/material_green"
+            app:bsb_bubble_text_color="@color/material_green"
             app:bsb_max="250"
             app:bsb_min="50"
             app:bsb_progress="0"
             android:layout_alignParentBottom="true"
-            app:bsb_second_track_color="@color/white"
-
+            app:bsb_second_track_color="@color/material_green"
             app:bsb_section_count="5"
             app:bsb_section_text_position="bottom_sides"
             app:bsb_show_progress_in_float="true"
             app:bsb_show_section_mark="true"
             app:bsb_show_section_text="true"
             app:bsb_show_thumb_text="true"
-            app:bsb_track_color="@color/white"/>
+            app:bsb_track_color="@color/material_green"/>
 
         <RelativeLayout
             android:id="@+id/chechrel"

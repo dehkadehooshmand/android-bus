@@ -9,6 +9,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import com.example.busproject.Model.PaymentTrackModel;
@@ -18,6 +19,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
+import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.RequestParams;
 import com.loopj.android.http.TextHttpResponseHandler;
 
@@ -65,8 +67,11 @@ public class LocationUpdate implements GoogleApiClient.ConnectionCallbacks, Goog
         if (isNetworkAvailable(AppController.getAppContext()))
 
             //CreateNode();
-
-            getNearestTaxis(lineId);
+            try {
+                getNearstBus(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+            } catch (Exception e) {
+            }
+            //getNearestTaxis(lineId);
         else noInternetDialog();
 
     }
@@ -81,8 +86,8 @@ public class LocationUpdate implements GoogleApiClient.ConnectionCallbacks, Goog
 
     }
 
-    public void StartSchedule(final Context act, int period, int lineId) {
-        this.lineId = lineId;
+    public void StartSchedule(final Context act, int period) {
+        //  this.lineId = lineId;
         mAct = act;
 
         //
@@ -144,19 +149,22 @@ public class LocationUpdate implements GoogleApiClient.ConnectionCallbacks, Goog
     }
 
 
-    public void getNearestTaxis(int id) {
+    public void getNearstBus(double lat, double lng) {
+
         RequestParams params = new RequestParams();
 
-//        params.put("lat", location.getLatitude());
-//        params.put("lng", location.getLongitude());
-        params.put("api_token", Helpers.getSharePrf("api_token"));
+        params.put("api_token", Helpers.getSharePrf("api_token"));//todo  "AlrmMQWVEe4VxXqn0igBp0idU2qr9rl6JWUNHtjqMVAsNRTf8aAbNfM365cskhr2"
 
-
-        params.put("station_id", id);
-        Helpers.client.post("http://admin.idpz.ir/api/user-locale", params, new TextHttpResponseHandler() {
+        AsyncHttpClient client = new AsyncHttpClient();
+        //params.put("station_id", id);
+        params.put("lat", lat);
+        params.put("lng", lng);
+        params.put("car", "0");
+        client.post("http://admin.idpz.ir/api/bus_find", params, new TextHttpResponseHandler() {
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
 
+                Helpers.noInternetDialog();
             }
 
             @Override
@@ -165,12 +173,10 @@ public class LocationUpdate implements GoogleApiClient.ConnectionCallbacks, Goog
                 Log.d("latlng", responseString);
 
                 EventBus.getDefault().post(new PaymentTrackModel(responseString));
-
-
-
             }
         });
-    }
 
+
+    }
 
 }

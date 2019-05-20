@@ -48,8 +48,9 @@ import android.view.SubMenu;
 import android.view.View;
 import android.view.Window;
 import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -59,22 +60,20 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.busproject.Adapters.ShowLineAdapter;
-import com.example.busproject.CodeScannerActivity;
 import com.example.busproject.LoginActivity;
 import com.example.busproject.Model.Area;
 import com.example.busproject.Model.Bus;
 import com.example.busproject.Model.CurrentBus;
 import com.example.busproject.Model.Line;
+import com.example.busproject.Model.PaymentTrackModel;
 import com.example.busproject.Model.Station;
+import com.example.busproject.PaymentActivityDialog;
 import com.example.busproject.R;
 import com.example.busproject.Scanner3;
 import com.example.busproject.Utils.AppController;
 import com.example.busproject.Utils.CustomTypefaceSpan;
 import com.example.busproject.Utils.Helpers;
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
-import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -101,40 +100,46 @@ import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.loopj.android.http.RequestParams;
 import com.loopj.android.http.TextHttpResponseHandler;
-import com.warkiz.widget.IndicatorSeekBar;
-import com.warkiz.widget.OnSeekChangeListener;
-import com.warkiz.widget.SeekParams;
 import com.xw.repo.BubbleSeekBar;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.text.NumberFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.StringTokenizer;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 import cz.msebera.android.httpclient.Header;
 
 import omidi.mehrdad.moalertdialog.MoAlertDialog;
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
-import uk.co.samuelwall.materialtaptargetprompt.MaterialTapTargetPrompt;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
     static {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
 
+    List<Marker> markers = new ArrayList<>();
+    Polyline polyline;
+    List<Polyline> polylines = new ArrayList<>();
+    LocationUpdate locationUpdate = new LocationUpdate();
     TextView increase_vlidity, validity;
     private BottomSheetBehavior bottomSheetBehavior;
-
     int minIndex;
     int count;
     Animation animation;
@@ -162,11 +167,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private BottomSheetDialog mBottomSheetDialog;
     private View bottom_sheet;
     List<Station> stations;
-
     public static Line mLine;
     Location mLocation;
     Handler handler = new Handler();
-
+    CheckBox check;
     /**
      * Receiver registered with this activity to get the response from FetchAddressIntentService.
      */
@@ -185,21 +189,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     DrawerLayout drawer_layout;
     private List<Area> areaArrayList;
     private ArrayList<Float> distances = new ArrayList<>();
-
-    int alarmDist = 100;
+    int alarmDist = 0;
     TextView txtDistance;
     CardView search_layout;
     RelativeLayout seekbar_layout;
     public static int location_int = 1;
     private int location_time = 0;
-
     boolean flag = false;
     Location mLastKnownLocation;
     Button confrimDest;
-
     boolean backpressflag = false;
     private GoogleMap.OnMarkerClickListener clusterManager;
-
+    private int play_time = 0;
+    MediaPlayer mp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -209,6 +211,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         increase_vlidity = findViewById(R.id.IncreaseValidity);
         validity = findViewById(R.id.validity);
 
+        check = findViewById(R.id.check);
         person1 = findViewById(R.id.p1);
         person2 = findViewById(R.id.p2);
         person3 = findViewById(R.id.p3);
@@ -222,11 +225,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         choose_taxi_layout = findViewById(R.id.choose_taxi_layout);
         btn_choose_taxi = findViewById(R.id.choose_taxi_btn);
 
+        LinearLayout llBottomSheet = findViewById(R.id.linear_bottomsheet);
+        bottomSheetBehavior = BottomSheetBehavior.from(llBottomSheet);
         SharedPreferences sharedPreferences = AppController.getAppContext().getSharedPreferences("verified", 0);
 
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString("flag", "true");
         editor.commit();
+        //locationUpdate.StartSchedule(MapsActivity.this, 10000, 7);// line.getId
 
 
         turnOnGPS();
@@ -264,7 +270,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     confrimDest.setVisibility(View.INVISIBLE);
                     backpressflag = true;
                     //getNearestTaxis();
-                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 } catch (Exception e) {
 
                     turnOnGPS();
@@ -272,6 +277,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+
 
         imageMarker = findViewById(R.id.imageMarker);
 
@@ -558,6 +565,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 //            chooseLoc();
 //        }
 
+        check.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if (check.isChecked()) {
+                    try {
+                        mp.stop();
+                    } catch (Exception e) {
+                    }
+
+                } else play_time = 0;
+            }
+        });
 
         showCredit();
     }
@@ -600,6 +619,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 //---------------------------------------------------area hay mokhtalef ra migirad va ba tavajo be makan kononni karbar area karbar ra bar migardanad------------------------------
                     if (Helpers.isNetworkAvailable(AppController.getAppContext()))
                         getAreas();
+
                     else Helpers.noInternetDialog();
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -608,12 +628,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     //getStations(5);
                 }
 
-//                mMap.clear();
+//               mMap.clear();
 
 
                 try {
 
-                    mLocation = new Location("");
+                    Location mLocation = new Location("");
                     mLocation.setLatitude(mCenterLatLong.latitude);
                     mLocation.setLongitude(mCenterLatLong.longitude);
 
@@ -630,13 +650,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 Log.d("latlng", String.valueOf(mCenterLatLong.latitude) + "," + String.valueOf(mCenterLatLong.longitude));
 
+                LinearLayout llBottomSheet = findViewById(R.id.linear_bottomsheet);
+                bottomSheetBehavior = BottomSheetBehavior.from(llBottomSheet);
 
-                initComponent(location);
-                if (location_time < location_int)
-                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-                else bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_HIDDEN) {
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-                location_time = location_time + 1;
+                }
 
 
             }
@@ -646,6 +666,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 try {
+
+
                     bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                 } catch (Exception e) {
                 }
@@ -705,7 +727,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
 
 
-        //     initComponent();
+        locationUpdate.StartSchedule(MapsActivity.this, 10000);
 
     }
 
@@ -785,8 +807,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStart() {
         super.onStart();
+        EventBus.getDefault().register(this);
+
         try {
             mGoogleApiClient.connect();
+
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -796,6 +821,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStop() {
         super.onStop();
+        EventBus.getDefault().unregister(this);
+
         try {
 
         } catch (RuntimeException e) {
@@ -1101,7 +1128,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         //    params.put("db", "states");
         //admin.idpz.ir/api/getstates
 
-        Helpers.client.get("http://admin.idpz.ir/api/getstates", params, new TextHttpResponseHandler() {
+        Helpers.client.get("http://admin.idpz.ir/api/getstate", params, new TextHttpResponseHandler() {
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
 
@@ -1157,7 +1184,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         minIndex = distances.indexOf(Collections.min(distances));
-        mMap.clear();
+        //  mMap.clear();
 
         if (Helpers.isNetworkAvailable(AppController.getAppContext()))
             getStations(minIndex);
@@ -1175,8 +1202,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
          */
 
         RequestParams params = new RequestParams();
-        params.put("id", id);
-        params.put("bus","");
+        params.put("id", 20);
+        params.put("bus", "");
         Helpers.client.post("http://admin.idpz.ir/api/getlines", params, new TextHttpResponseHandler() {
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
@@ -1186,21 +1213,152 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onSuccess(int statusCode, Header[] headers, String responseString) {
                 flag = true;
-
                 try {
+                    if (responseString.contains("notOk")) {
+                        NoLineAlert();
+                    } else {
 
 
-                    Line[] areaModel = Helpers.gson.fromJson(responseString, Line[].class);
+                        String test = "[\n" +
+                                "    {\n" +
+                                "        \"id\": 41,\n" +
+                                "        \"name\": \"میدان انقلاب بیمارستان قلب\",\n" +
+                                "        \"color\": \"ff00bf\",\n" +
+                                "        \"Stations\": [\n" +
+                                "            {\n" +
+                                "                \"id\": 462,\n" +
+                                "                \"lat\": 35.701427,\n" +
+                                "                \"lng\": 51.391068,\n" +
+                                "                \"name\": \"میدان انقلاب\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 463,\n" +
+                                "                \"lat\": 35.703533,\n" +
+                                "                \"lng\": 51.390812,\n" +
+                                "                \"name\": \"ایستگاه1\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 464,\n" +
+                                "                \"lat\": 35.708153,\n" +
+                                "                \"lng\": 51.390232,\n" +
+                                "                \"name\": \"ایستگاه2\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 465,\n" +
+                                "                \"lat\": 35.714195,\n" +
+                                "                \"lng\": 51.389435,\n" +
+                                "                \"name\": \"ایستگاه3\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 466,\n" +
+                                "                \"lat\": 35.717499,\n" +
+                                "                \"lng\": 51.389442,\n" +
+                                "                \"name\": \"ایستگاه4\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 467,\n" +
+                                "                \"lat\": 35.719101,\n" +
+                                "                \"lng\": 51.38916,\n" +
+                                "                \"name\": \"بیمارستان قلب\"\n" +
+                                "            }\n" +
+                                "        ]\n" +
+                                "    },\n" +
+                                "    {\n" +
+                                "        \"id\": 42,\n" +
+                                "        \"name\": \"میدان انقلاب میدان فاطمی\",\n" +
+                                "        \"color\": \"ff8000\",\n" +
+                                "        \"Stations\": [\n" +
+                                "            {\n" +
+                                "                \"id\": 468,\n" +
+                                "                \"lat\": 35.700832,\n" +
+                                "                \"lng\": 51.39209,\n" +
+                                "                \"name\": \"میدان انقلاب\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 469,\n" +
+                                "                \"lat\": 35.701172,\n" +
+                                "                \"lng\": 51.400448,\n" +
+                                "                \"name\": \"ایستگاه1\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 470,\n" +
+                                "                \"lat\": 35.701443,\n" +
+                                "                \"lng\": 51.400349,\n" +
+                                "                \"name\": \"ایستگاه2\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 471,\n" +
+                                "                \"lat\": 35.708954,\n" +
+                                "                \"lng\": 51.397076,\n" +
+                                "                \"name\": \"پارک لاله\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 472,\n" +
+                                "                \"lat\": 35.715904,\n" +
+                                "                \"lng\": 51.394169,\n" +
+                                "                \"name\": \"ایستگاه4\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 473,\n" +
+                                "                \"lat\": 35.719639,\n" +
+                                "                \"lng\": 51.404808,\n" +
+                                "                \"name\": \"میدان فاطمی\"\n" +
+                                "            }\n" +
+                                "        ]\n" +
+                                "    },\n" +
+                                "    {\n" +
+                                "        \"id\": 43,\n" +
+                                "        \"name\": \"چمران میدان فاطمی\",\n" +
+                                "        \"color\": \"0000cc\",\n" +
+                                "        \"Stations\": [\n" +
+                                "            {\n" +
+                                "                \"id\": 474,\n" +
+                                "                \"lat\": 35.712017,\n" +
+                                "                \"lng\": 51.380085,\n" +
+                                "                \"name\": \"چمران\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 475,\n" +
+                                "                \"lat\": 35.712574,\n" +
+                                "                \"lng\": 51.382359,\n" +
+                                "                \"name\": \"ایستگاه\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 476,\n" +
+                                "                \"lat\": 35.714123,\n" +
+                                "                \"lng\": 51.389355,\n" +
+                                "                \"name\": \"خیابان کارگر\"\n" +
+                                "            },\n" +
+                                "            {\n" +
+                                "                \"id\": 477,\n" +
+                                "                \"lat\": 35.719639,\n" +
+                                "                \"lng\": 51.404793,\n" +
+                                "                \"name\": \"میدان فاطمی\"\n" +
+                                "            }\n" +
+                                "        ]\n" +
+                                "    }\n" +
+                                "]";
+
+                        //  Line[] areaModel = Helpers.gson.fromJson(test, Line[].class);
 
 //todo function namyesh khotot bayad inja gharar begire
 
-                    lines = Arrays.asList(areaModel);
-                    for (Line line : lines) {
-                        drawLine(line);
+                        initComponent(responseString);
+
+
+                        //     initComponent(location);
+
+//                    lines = Arrays.asList(areaModel);
+//                    for (Line line : lines) {
+//                        drawLine(line);
+//                    }
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "onSuccess: ", e);
                 }
+
+
+                //          initComponent(location);
 
             }
         });
@@ -1298,7 +1456,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         }
-        mMap.addPolyline(options);
+
+        polyline = mMap.addPolyline(options);
+        polyline.setTag(line.getId());
+        polylines.add(polyline);
     }
 
 
@@ -1520,140 +1681,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 
-    private void initComponent(Location location) {
-        String test = "[\n" +
-                "    {\n" +
-                "        \"id\": 41,\n" +
-                "        \"name\": \"میدان انقلاب بیمارستان قلب\",\n" +
-                "        \"color\": \"ff00bf\",\n" +
-                "        \"Stations\": [\n" +
-                "            {\n" +
-                "                \"id\": 462,\n" +
-                "                \"lat\": 35.701427,\n" +
-                "                \"lng\": 51.391068,\n" +
-                "                \"name\": \"میدان انقلاب\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 463,\n" +
-                "                \"lat\": 35.703533,\n" +
-                "                \"lng\": 51.390812,\n" +
-                "                \"name\": \"ایستگاه1\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 464,\n" +
-                "                \"lat\": 35.708153,\n" +
-                "                \"lng\": 51.390232,\n" +
-                "                \"name\": \"ایستگاه2\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 465,\n" +
-                "                \"lat\": 35.714195,\n" +
-                "                \"lng\": 51.389435,\n" +
-                "                \"name\": \"ایستگاه3\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 466,\n" +
-                "                \"lat\": 35.717499,\n" +
-                "                \"lng\": 51.389442,\n" +
-                "                \"name\": \"ایستگاه4\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 467,\n" +
-                "                \"lat\": 35.719101,\n" +
-                "                \"lng\": 51.38916,\n" +
-                "                \"name\": \"بیمارستان قلب\"\n" +
-                "            }\n" +
-                "        ]\n" +
-                "    },\n" +
-                "    {\n" +
-                "        \"id\": 42,\n" +
-                "        \"name\": \"میدان انقلاب میدان فاطمی\",\n" +
-                "        \"color\": \"ff8000\",\n" +
-                "        \"Stations\": [\n" +
-                "            {\n" +
-                "                \"id\": 468,\n" +
-                "                \"lat\": 35.700832,\n" +
-                "                \"lng\": 51.39209,\n" +
-                "                \"name\": \"میدان انقلاب\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 469,\n" +
-                "                \"lat\": 35.701172,\n" +
-                "                \"lng\": 51.400448,\n" +
-                "                \"name\": \"ایستگاه1\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 470,\n" +
-                "                \"lat\": 35.701443,\n" +
-                "                \"lng\": 51.400349,\n" +
-                "                \"name\": \"ایستگاه2\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 471,\n" +
-                "                \"lat\": 35.708954,\n" +
-                "                \"lng\": 51.397076,\n" +
-                "                \"name\": \"پارک لاله\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 472,\n" +
-                "                \"lat\": 35.715904,\n" +
-                "                \"lng\": 51.394169,\n" +
-                "                \"name\": \"ایستگاه4\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 473,\n" +
-                "                \"lat\": 35.719639,\n" +
-                "                \"lng\": 51.404808,\n" +
-                "                \"name\": \"میدان فاطمی\"\n" +
-                "            }\n" +
-                "        ]\n" +
-                "    },\n" +
-                "    {\n" +
-                "        \"id\": 43,\n" +
-                "        \"name\": \"چمران میدان فاطمی\",\n" +
-                "        \"color\": \"0000cc\",\n" +
-                "        \"Stations\": [\n" +
-                "            {\n" +
-                "                \"id\": 474,\n" +
-                "                \"lat\": 35.712017,\n" +
-                "                \"lng\": 51.380085,\n" +
-                "                \"name\": \"چمران\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 475,\n" +
-                "                \"lat\": 35.712574,\n" +
-                "                \"lng\": 51.382359,\n" +
-                "                \"name\": \"ایستگاه\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 476,\n" +
-                "                \"lat\": 35.714123,\n" +
-                "                \"lng\": 51.389355,\n" +
-                "                \"name\": \"خیابان کارگر\"\n" +
-                "            },\n" +
-                "            {\n" +
-                "                \"id\": 477,\n" +
-                "                \"lat\": 35.719639,\n" +
-                "                \"lng\": 51.404793,\n" +
-                "                \"name\": \"میدان فاطمی\"\n" +
-                "            }\n" +
-                "        ]\n" +
-                "    }\n" +
-                "]";
+    private void initComponent(String test) {
 
 
         // get the bottom sheet view
         LinearLayout llBottomSheet = findViewById(R.id.linear_bottomsheet);
 
 
-        Location myLoc = new Location("");
-        try {
-            myLoc.setLatitude(Double.parseDouble("35.713509"));
-
-
-            myLoc.setLongitude(Double.parseDouble("51.385377"));
-        } catch (Exception e) {
-        }
         final Line[] lines = Helpers.gson.fromJson(test, Line[].class);
 
         for (Line line : lines) {
@@ -1684,22 +1718,32 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         }
 
-//        Location location=new Location("");
-//        location.setLatitude(getMyLocation().getLatitude());
-//        location.setLongitude(getMyLocation().getLongitude());
+        Location location = new Location("");
+        location.setLatitude(getMyLocation().getLatitude());
+        location.setLongitude(getMyLocation().getLongitude());
 
         ShowLineAdapter showLineAdapter = new ShowLineAdapter(arrayList, location, MapsActivity.this, new ShowLineAdapter.OnItemClickListener() {
             @Override
-            public void onItemClick(View v, int pos, Object object) {
+            public void onItemClick(CheckBox checkBox,View v, int pos, Object object) {
 
                 Line line = (Line) object;
-                try {
-                    drawLine(line);
 
-                } catch (Exception e) {
-                    Log.d("parisa", e.toString());
+                if (checkBox.isChecked()) {
+
+                    try {
+                        drawLine(line);
+                        //  getNearstBus(line.getId());
+                        // bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+
+                        //    locationUpdate.CancelTimer();
+                        //         locationUpdate.StartSchedule(MapsActivityBus.this, 10000, line.getId());//todo kole bus ha ro neshon bede
+
+                    } catch (Exception e) {
+                        Log.d("parisa", e.toString());
+                    }
+                } else {
+                    removeLine(line);
                 }
-
             }
         });
         RecyclerView recyclerView = findViewById(R.id.recycle);
@@ -1717,11 +1761,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         bottomSheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                //   bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
             }
 
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                //   bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
             }
         });
@@ -1729,68 +1775,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    public void getStation(int id) {
-        /*
-         ***************************************RECIEVING SERVICES*****************************************************************
-         */
-
-        RequestParams params = new RequestParams();
-        params.put("id", 4);
-        Helpers.client.post("http://admin.idpz.ir/api/getlines", params, new TextHttpResponseHandler() {
-            @Override
-            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
-
-            }
-
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, String responseString) {
-                flag = true;
-
-
-                try {
-
-                    Line[] areaModel = Helpers.gson.fromJson(responseString, Line[].class);
-
-//todo function namyesh khotot bayad inja gharar begire
-
-                    lines = Arrays.asList(areaModel);
-                    for (Line line : lines) {
-                        drawLine(line);
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "onSuccess: ", e);
-                }
-
-            }
-        });
-
-
-    }
-
-
-    private void showTip() {
-        Typeface irsans = Typeface.createFromAsset(getAssets(), "fonts/IRANSans(FaNum).ttf");
-
-
-        if (!Helpers.getSharePrf("StationTip").equals("1"))
-            new MaterialTapTargetPrompt.Builder(activity)
-                    .setTarget(R.id.currentlocation)
-                    .setFocalColour(getResources().getColor(R.color.colorPrimaryDark))
-                    .setPrimaryText("تشخیص موقعیت مکانی")
-                    .setPrimaryTextTypeface(irsans)
-                    .setSecondaryTextTypeface(irsans)
-                    .setBackgroundColour(getResources().getColor(R.color.colorPrimary))
-                    .setSecondaryText("برای اینکه بتونیم خطوط اطراف رو بهت نشون بدیم باید موقعیت مکانی خودت رو با زدن روی این دکمه مشخص کنی. ")
-                    .setPromptStateChangeListener(new MaterialTapTargetPrompt.PromptStateChangeListener() {
-                        @Override
-                        public void onPromptStateChanged(MaterialTapTargetPrompt prompt, int state) {
-                            if (state == MaterialTapTargetPrompt.STATE_DISMISSED) {
-                                Helpers.addToSharePrf("StationTip", "1");
-                            }
-                        }
-                    })
-                    .show();
-    }
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -1823,6 +1807,34 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.d("parisa", e.toString());
         }
     }
+
+
+    public void NoLineAlert() {
+        try {
+            Typeface face = Typeface.createFromAsset(getAssets(),
+                    "fonts/IRANSans(FaNum).ttf");
+
+            final MoAlertDialog dialog = new MoAlertDialog(MapsActivity.this);
+
+            dialog.showSuccessDialog("کاربر عزیز", "تا شعاع یک کیلومتری شما خطی ثبت نشده است.");
+
+            dialog.setTypeface(face);
+
+            dialog.setDilogIcon(R.drawable.ic_sad);
+            dialog.setDialogButtonText("باشه");
+            dialog.setOnButtonClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    //initComponent();
+                    dialog.dismis();
+                }
+            });
+        } catch (Exception e) {
+            Log.d("parisa", e.toString());
+        }
+    }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -1874,16 +1886,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         return NumberFormat.getNumberInstance(Locale.US).format(amount);
     }
 
-    public void getNearstBus(int id){
+    public void getNearstBus(int id) {
 
         RequestParams params = new RequestParams();
 
 //      params.put("lat", location.getLatitude());
 //        params.put("lng", location.getLongitude());
-        params.put("api_token", Helpers.getSharePrf("api_token"));
+        params.put("api_token", "AlrmMQWVEe4VxXqn0igBp0idU2qr9rl6JWUNHtjqMVAsNRTf8aAbNfM365cskhr2");//todo Helpers.getSharePrf("api_token")
 
 
-        params.put("station_id", id);
+        params.put("station_id", 7);
         Helpers.client.post("http://admin.idpz.ir/api/bus_find", params, new TextHttpResponseHandler() {
             @Override
             public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
@@ -1894,27 +1906,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onSuccess(int statusCode, Header[] headers, String responseString) {
                 //    Toast.makeText(MapsActivity.this, responseString.toString(), Toast.LENGTH_SHORT).show();
                 Log.d("latlng", responseString);
-                showBus(responseString);
-            }
-        });
+                //showBus(responseString);
 
-
-    }
-
-    public void showBus(String response){
-
-
-            try {
                 //  stopAnim();
 
-                CurrentBus currentBus = Helpers.gson.fromJson(response, CurrentBus.class);
+                CurrentBus currentBus = Helpers.gson.fromJson(responseString, CurrentBus.class);
 
 
-                if (response.contains("ok")) {
+                if (responseString.contains("ok")) {
 
                     final List<Bus> buses = currentBus.getBus();
 
-                    for (final Bus bus :buses ) {
+                    for (final Bus bus : buses) {
                         bus.getLat();
                         bus.getLng();
 
@@ -1924,32 +1927,83 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         MarkerOptions markerOptions = new MarkerOptions();
 
                         markerOptions.position(new LatLng(bus.getLat(), bus.getLng()))//.icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.ic_logo_taxi_front));
-                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_school_bus2)).flat(true);
+                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.bus)).flat(true);
                         Marker marker = mMap.addMarker(markerOptions);
 
 
                         marker.setTag(bus.getId());
 
+                    }
+                }
+            }
+        });
 
-                        final MediaPlayer mp = MediaPlayer.create(this, R.raw.sampleaudio);
 
-                        Location location = new Location("");
-                        location.setLatitude(bus.getLat());
-                        location.setLongitude(bus.getLng());
+    }
 
-                        Location mLocation = new Location("");
-                        mLocation.setLatitude(getMyLocation().getLatitude());
-                        mLocation.setLongitude(getMyLocation().getLongitude());
-                        Log.d("parisa", String.valueOf(location.distanceTo(mLocation)));
-                        Log.d("parisa", String.valueOf(alarmDist));
-                        Log.d("parisa", String.valueOf(location));
-                        Log.d("parisa", String.valueOf(mLocation));
-                        if (location.distanceTo(mLocation) < alarmDist) {
-                            mp.start();
-                            Log.d("parisa", "start");
+    public void setAlarm(String response) {
+
+
+        try {
+            //  stopAnim();
+
+            CurrentBus currentBus = Helpers.gson.fromJson(response, CurrentBus.class);
+
+
+            if (response.contains("ok")) {
+
+                final List<Bus> buses = currentBus.getBus();
+
+                for (final Bus bus : buses) {
+
+
+                    final MediaPlayer mp = MediaPlayer.create(this, R.raw.twotone);
+
+                    Location location = new Location("");
+                    location.setLatitude(bus.getLat());
+                    location.setLongitude(bus.getLng());
+
+                    Location mLocation = new Location("");
+                    mLocation.setLatitude(getMyLocation().getLatitude());
+                    mLocation.setLongitude(getMyLocation().getLongitude());
+                    Log.d("parisa", String.valueOf(location.distanceTo(mLocation)));
+                    Log.d("parisa", String.valueOf(alarmDist));
+                    Log.d("parisa", String.valueOf(location));
+                    Log.d("parisa", String.valueOf(mLocation));
+                    if (location.distanceTo(mLocation) < alarmDist && check.isChecked()) {
+
+                        for (Polyline polyline : polylines) {
+                            try {
+                                //faghat otobosaye khati ke entekhab kardim alarm mizane
+                                if (polyline.getTag().toString().equals(bus.getStationId()))
+                                    if (play_time < 2) {
+
+                                        mp.start();
+
+                                    } else check.setChecked(false);
+                            } catch (Exception e) {
+                            }
                         }
+                        play_time = play_time + 1;
+                        Log.d("parisa", "start");
 
                     }
+                    for (Polyline polyline : polylines) {
+                        try {
+                            if (polyline.getTag().toString().equals(bus.getStationId())) {
+                                MarkerOptions markerOptions = new MarkerOptions();
+
+                                markerOptions.position(new LatLng(bus.getLat(), bus.getLng()))//.icon(bitmapDescriptorFromVector(MapsActivity.this, R.drawable.ic_logo_taxi_front));
+                                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.bus)).flat(true);
+                                Marker marker = mMap.addMarker(markerOptions);
+
+                                markers.add(marker);
+                            }
+                        } catch (Exception e) {
+                        }
+                    }
+
+                }
 
 //                    for (final Taxi taxi : taxis) {
 ////                        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
@@ -1967,14 +2021,169 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 ////                        });
 //                    }
 
-                } else {
+            } else {
 
-                }
-            } catch (Exception e) {
             }
-
+        } catch (Exception e) {
         }
 
+    }
 
+
+    @Subscribe
+    public void PaymentDialog(PaymentTrackModel model) {
+        model.getMessage();
+        for (Marker marker : markers) {
+            marker.remove();
+        }
+        markers.clear();
+        setAlarm(model.getMessage());
+//        mMap.clear();
+
+
+
+    }
+
+    private void showDialog() {
+        final Dialog dialog = new Dialog(MapsActivity.this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE); // before
+        dialog.setContentView(R.layout.payment_ok);
+        dialog.setCancelable(false);
+        dialog.show();
+
+        TextView title = dialog.findViewById(R.id.title);
+
+        Button btnGo = dialog.findViewById(R.id.btnGo);
+        TextView content = dialog.findViewById(R.id.content);
+
+        title.setText("کاربر عزیز");
+        content.setText("پرداخت با موفقیت انجام شد.");
+        btnGo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+                Intent i1 = new Intent(getApplicationContext(), MapsActivity.class);
+                i1.setAction(Intent.ACTION_MAIN);
+                i1.addCategory(Intent.CATEGORY_HOME);
+                i1.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                i1.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                i1.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+                startActivity(i1);
+                overridePendingTransition(0, 0);
+
+                finish();
+            }
+        });
+    }
+
+
+    public void checkPayment() {
+
+        RequestParams params = new RequestParams();
+
+        String url =Helpers.baseUrl+ "bus_ex";
+        params.put("id", "8");
+        params.put("api_token", Helpers.getSharePrf("api_token"));
+       Helpers.client.post(url, params, new TextHttpResponseHandler() {
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+
+            }
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, String responseString) {
+
+                if (responseString.contains("ok")) {
+
+                    Date mDate = new Date();
+                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+                    String dateToStr = format.format(mDate);
+                    try {
+
+
+                        JSONObject jsonObject = new JSONObject(responseString);
+                        String ex = String.valueOf(jsonObject.get("ex"));
+                        String price = String.valueOf(jsonObject.get("price"));
+
+                        try {
+                            Date expireDate = format.parse(ex);
+                            Date today = format.parse(dateToStr);
+                            if (expireDate.before(today) || (expireDate.compareTo(today) == 0)) {//todo  (expireDate.before(today) || (expireDate.compareTo(format.parse("2019-06-10")) == 0))
+                                payment_Dialog(price);
+                            }
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+            }
+        });
+    }
+
+    public void payment_Dialog(String price) {
+        final Dialog dialog2 = new Dialog(mContext);
+        dialog2.requestWindowFeature(Window.FEATURE_NO_TITLE); // before
+        dialog2.setContentView(R.layout.payment_ok);
+        dialog2.setCancelable(false);
+        dialog2.show();
+        TextView title = dialog2.findViewById(R.id.title);
+        TextView content = dialog2.findViewById(R.id.content);
+
+        ImageView info_icon = dialog2.findViewById(R.id.icon);
+
+       // info_icon.setImageResource(R.drawable.ic_info);
+        content.setText("برای استفاده از خدماتی که در اتوبوس هوشمند به شما ارائه میدهیم باید مبلغ" +
+                price +
+                " ریال پرداخت کنید.");
+        title.setText("کاربر عزیز");
+        Button btnGo = dialog2.findViewById(R.id.btnGo);
+        btnGo.setText("پرداخت");
+        Button btnOk = dialog2.findViewById(R.id.btnOk);
+        btnOk.setText("بعدا پرداخت میکنم");
+        btnOk.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog2.dismiss();
+
+            }
+        });
+
+        btnGo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MapsActivity.this, PaymentActivityDialog.class);
+                intent.putExtra("tag", "bus");
+                intent.putExtra("exp", "exp");
+                //id ranande
+                intent.putExtra("id", Helpers.getSharePrf("user_id"));
+                startActivity(intent);
+                dialog2.dismiss();
+            }
+        });
+
+
+    }
+    public void removeLine(Line line) {
+        try {
+            for (Polyline polyline : polylines) {
+
+                try {
+                    if (polyline.getTag().toString().equals(String.valueOf(line.getId()))) {
+                        polyline.remove();
+                        polylines.remove(polyline);
+                    }
+                } catch (Exception e) {
+                }
+            }
+        } catch (ConcurrentModificationException e) {
+        }
+    }
 }
 

@@ -38,7 +38,6 @@ public class PaymentActivity extends AppCompatActivity {
         String responseString = intent.getStringExtra("userData");
         final CurrentTaxi currentTaxis = Helpers.gson.fromJson(responseString, CurrentTaxi.class);
 
-
         txtName = findViewById(R.id.name);
         txtPrice = findViewById(R.id.price);
         pardakht = findViewById(R.id.pardakht);
